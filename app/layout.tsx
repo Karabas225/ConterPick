@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import DataFreshness from "./data-freshness";
+import BackToTop from "./back-to-top";
+import SiteAnnouncement from "./site-announcement";
+import ThemeToggle from "./theme-toggle";
 
 export const metadata: Metadata = {
   title: "CounterPick — Dota 2 Draft Intelligence",
@@ -11,9 +15,9 @@ export const metadata: Metadata = {
     images: [{ url: "/og.png", width: 1536, height: 1024, alt: "CounterPick draft intelligence" }],
   },
   twitter: { card: "summary_large_image", title: "CounterPick", description: "Пик, который ломает план.", images: ["/og.png"] },
-  icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
+  icons: { icon: "/counterpick-logo.png", shortcut: "/counterpick-logo.png", apple: "/counterpick-logo.png" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="ru"><body>{children}</body></html>;
+  return <html lang="ru"><body><ThemeToggle /><DataFreshness /><SiteAnnouncement /><BackToTop />{children}</body></html>;
 }

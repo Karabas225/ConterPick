@@ -1,0 +1,24 @@
+[Unit]
+Description=CounterPick Dota 2 draft assistant
+After=network.target
+
+[Service]
+Type=simple
+User=counterpick
+Group=counterpick
+WorkingDirectory=/opt/counterpick
+Environment=NODE_ENV=production
+Environment=SELF_HOST=1
+Environment=SELF_HOST_DB_PATH=/opt/counterpick/data/counterpick.sqlite
+EnvironmentFile=-/etc/counterpick/counterpick.env
+ExecStart=/usr/bin/npm run start -- --hostname 127.0.0.1 --port 3000
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/counterpick/data
+
+[Install]
+WantedBy=multi-user.target

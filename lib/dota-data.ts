@@ -74,7 +74,7 @@ export const CATALOG: Hero[] = heroNames.map(([id, name, roles]) => ({
 }));
 
 export const ROLE_LABELS: Record<RoleId, string> = { 1: "Керри", 2: "Мид", 3: "Оффлейн", 4: "Саппорт", 5: "Хард саппорт" };
-export const PATCH = "7.41d";
+export const PATCH = "7.41e";
 export function findHero(id: number) { return CATALOG.find((hero) => hero.id === id); }
 export function searchHeroes(query: string, role?: RoleId) {
   const normalized = query.trim().toLowerCase();

@@ -61,3 +61,8 @@ export const dotaUpdates = sqliteTable("dota_updates", {
   checkedAt: integer("checked_at", { mode: "timestamp_ms" }).notNull().default(now),
   sourceUpdatedAt: integer("source_updated_at", { mode: "timestamp_ms" }),
 });
+
+export const siteSettings = sqliteTable("site_settings", {
+  key: text("key").primaryKey(), value: text("value").notNull().default("{}"),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().default(now),
+});

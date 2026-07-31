@@ -19,9 +19,9 @@ export async function POST(request: Request) {
     if (!isRole(body.targetRole)) return Response.json({ error: "targetRole must be 1..5" }, { status: 400 });
     const allies = parseDraft(body.allies ?? [], 4); const enemies = parseDraft(body.enemies ?? [], 5);
     if (!enemies.length) return Response.json({ error: "At least one enemy is required" }, { status: 400 });
-    const recommendations = recommend(allies, enemies, body.targetRole);
     const update = await ensureDotaUpdate();
+    const recommendations = recommend(allies, enemies, body.targetRole, update.heroStats);
     const eventId = await recordDraft(request, { targetRole: body.targetRole, allies: allies.map(({ id, role }) => ({ heroId: id, role })), enemies: enemies.map(({ id, role }) => ({ heroId: id, role })), recommendations });
-    return Response.json({ patch: update.patch, updatedAt: new Date().toISOString(), updateStatus: update.status, sourceUpdatedAt: update.sourceUpdatedAt, eventId, recommendations });
+    return Response.json({ patch: update.patch, updatedAt: update.dataUpdatedAt ?? update.checkedAt ?? new Date().toISOString(), updateStatus: update.status, sourceUpdatedAt: update.sourceUpdatedAt, dataUpdatedAt: update.dataUpdatedAt, buildsUpdatedAt: update.buildsUpdatedAt, buildsStatus: update.buildsStatus, eventId, recommendations });
   } catch (error) { return Response.json({ error: error instanceof Error ? error.message : "Invalid draft" }, { status: 400 }); }
 }

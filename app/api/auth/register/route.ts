@@ -1,6 +1,4 @@
-import { eq, or } from "drizzle-orm";
-import { getDb } from "../../../../db";
-import { users } from "../../../../db/schema";
+import { storeFirst, storeRun } from "../../../../lib/app-store";
 import { createSession, hashPassword, isEmail, isPhone, normalizeEmail, normalizePhone, setSessionCookie, configuredAdminEmails } from "../../../../lib/app-auth";
 
 export async function POST(request: Request) {
@@ -14,12 +12,15 @@ export async function POST(request: Request) {
     const displayName = typeof body.displayName === "string" && body.displayName.trim() ? body.displayName.trim().slice(0, 80) : (email ?? phone ?? "CounterPick player");
     if ((!email || !isEmail(email)) && (!phone || !isPhone(phone))) return Response.json({ error: "Укажите корректную почту или телефон" }, { status: 400 });
     if (password.length < 8) return Response.json({ error: "Пароль должен содержать минимум 8 символов" }, { status: 400 });
-    const db = await getDb();
-    const existing = await db.select({ id: users.id }).from(users).where(email && phone ? or(eq(users.email, email), eq(users.phone, phone)) : email ? eq(users.email, email) : eq(users.phone, phone!)).limit(1);
-    if (existing.length) return Response.json({ error: "Аккаунт с такими данными уже существует" }, { status: 409 });
+    const existing = await storeFirst<{ id: string }>(
+      email && phone ? "SELECT id FROM users WHERE email = ? OR phone = ? LIMIT 1" : email ? "SELECT id FROM users WHERE email = ? LIMIT 1" : "SELECT id FROM users WHERE phone = ? LIMIT 1",
+      email && phone ? [email, phone] : [email ?? phone!],
+    );
+    if (existing) return Response.json({ error: "Аккаунт с такими данными уже существует" }, { status: 409 });
     const id = crypto.randomUUID();
     const role = email && configuredAdminEmails().includes(email) ? "admin" : "user";
-    await db.insert(users).values({ id, email, phone, displayName, passwordHash: await hashPassword(password), role });
+    const now = Date.now();
+    await storeRun("INSERT INTO users (id, email, phone, display_name, password_hash, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [id, email, phone, displayName, await hashPassword(password), role, now, now]);
     const response = Response.json({ user: { id, email, phone, displayName, role } }, { status: 201 });
     setSessionCookie(response, request, await createSession(id));
     return response;

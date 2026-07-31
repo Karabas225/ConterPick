@@ -1,6 +1,20 @@
 import { CATALOG, findHero, PATCH, ROLE_LABELS, type DraftHero, type RoleId } from "./dota-data";
 import { tacticalFit } from "./tactics";
 
+export type LiveHeroMeta = { matches: number; winRate: number };
+export type LiveBuild = {
+  heroId: number;
+  role: number;
+  sample: number;
+  starting?: string[];
+  early?: string[];
+  core?: { item: string; timing: string }[];
+  situational?: { item: string; reason: string; lift?: string }[];
+  skills?: string[];
+  talents?: { level: number; text: string }[];
+  source?: string;
+};
+
 export type Recommendation = {
   rank: number; heroId: number; heroName: string; heroImage: string; score: number;
   confidence: "Высокая" | "Средняя" | "Низкая"; sample: number; coverage: number;
@@ -30,9 +44,12 @@ function matchupAdvantage(candidate: number, enemy: number) {
 function synergyAdvantage(candidate: number, ally: number) { return Math.max(-0.28, Math.min(0.35, (hash(candidate + 1000, ally) - 0.42) * 0.4)); }
 function normalize(value: number, min: number, max: number) { return Math.round(Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100))); }
 
-export function recommend(allies: DraftHero[], enemies: DraftHero[], targetRole: RoleId): Recommendation[] {
+export function recommend(allies: DraftHero[], enemies: DraftHero[], targetRole: RoleId, liveMeta: Record<string, LiveHeroMeta> = {}): Recommendation[] {
   const blocked = new Set([...allies, ...enemies].map((hero) => hero.id));
-  const pool = CATALOG.filter((hero) => hero.roles.includes(targetRole) && !blocked.has(hero.id));
+  const hasLiveMeta = Object.keys(liveMeta).length > 0;
+  const basePool = CATALOG.filter((hero) => hero.roles.includes(targetRole) && !blocked.has(hero.id));
+  const livePool = basePool.filter((hero) => (liveMeta[String(hero.id)]?.matches ?? 0) >= 100);
+  const pool = hasLiveMeta && livePool.length >= 5 ? livePool : basePool;
   const raw = pool.map((candidate) => {
     const enemyScores = enemies.map((enemy) => {
       const laneBoost = enemy.role === targetRole ? 1.5 : 1;
@@ -43,7 +60,9 @@ export function recommend(allies: DraftHero[], enemies: DraftHero[], targetRole:
     const allyScores = allies.map((ally) => synergyAdvantage(candidate.id, ally.id));
     const counter = enemyScores.reduce((sum, row) => sum + row.value * row.weight, 0) / Math.max(1, enemyScores.reduce((sum, row) => sum + row.weight, 0));
     const synergy = allies.length ? Math.max(-0.28, Math.min(0.35, tactical.score + (allyScores.reduce((sum, value) => sum + value, 0) / allies.length) * 0.25)) : 0;
-    const meta = ((metaBase[candidate.id] ?? 62) + (hash(candidate.id, targetRole) - 0.5) * 10) / 100;
+    const live = liveMeta[String(candidate.id)];
+    const metaScoreFromLive = live ? Math.round(Math.max(0, Math.min(100, ((live.winRate - 40) / 25) * 100))) : null;
+    const meta = (metaScoreFromLive ?? ((metaBase[candidate.id] ?? 62) + (hash(candidate.id, targetRole) - 0.5) * 10)) / 100;
     const counterScore = normalize(counter, -0.3, 0.38);
     const synergyScore = normalize(synergy, -0.25, 0.32);
     const metaScore = Math.round(Math.max(0, Math.min(100, meta * 100)));
@@ -100,20 +119,21 @@ const situationalPool: [string, string][] = [
   ["Nullifier", "Снимает защитные баффы и спасательные предметы"], ["Pipe of Insight", "Снижает общий магический урон команды"],
   ["Scythe of Vyse", "Даёт надёжный контроль против мобильной цели"], ["Heaven's Halberd", "Останавливает физического керри"],
 ];
-export function buildGuide(heroId: number, targetRole: RoleId, enemyIds: number[]): BuildGuide {
+export function buildGuide(heroId: number, targetRole: RoleId, enemyIds: number[], liveBuilds: Record<string, LiveBuild> = {}): BuildGuide {
   const hero = findHero(heroId) ?? CATALOG[0];
-  const core = coreByHeroRole[`${hero.id}:${targetRole}`] ?? genericCoreByRole[targetRole];
+  const liveBuild = liveBuilds[`${hero.id}:${targetRole}`];
+  const core = liveBuild?.core?.length ? liveBuild.core.map((entry) => entry.item) : coreByHeroRole[`${hero.id}:${targetRole}`] ?? genericCoreByRole[targetRole];
   const enemyNames = enemyIds.map((id) => findHero(id)?.shortName).filter(Boolean) as string[];
   const situational = situationalPool.slice(0, 4).map(([item, reason], index) => ({
     item, reason: enemyNames[index % Math.max(1, enemyNames.length)] ? reason + " против " + enemyNames[index % enemyNames.length] : reason,
     lift: (1.25 + index * 0.08).toFixed(2) + "×",
   }));
   return {
-    heroId: hero.id, heroName: hero.name, role: ROLE_LABELS[targetRole], patch: PATCH, sample: 780 + (hero.id * 37) % 1800,
-    source: "Local baseline · D2PT adapter gated", confidence: enemyIds.length >= 3 ? "Средняя" : "Низкая",
-    starting: starterByRole[targetRole], early: ["Magic Wand", "Boots of Speed", targetRole >= 4 ? "Smoke of Deceit" : "Power Treads"],
+    heroId: hero.id, heroName: hero.name, role: ROLE_LABELS[targetRole], patch: PATCH, sample: liveBuild?.sample || 780 + (hero.id * 37) % 1800,
+    source: liveBuild?.source ?? "Role-safe local baseline · daily feed not configured", confidence: liveBuild ? (liveBuild.sample >= 500 ? "Высокая" : "Средняя") : enemyIds.length >= 3 ? "Средняя" : "Низкая",
+    starting: liveBuild?.starting?.length ? liveBuild.starting : starterByRole[targetRole], early: liveBuild?.early?.length ? liveBuild.early : ["Magic Wand", "Boots of Speed", targetRole >= 4 ? "Smoke of Deceit" : "Power Treads"],
     core: core.map((item, index) => ({ item, timing: (index < 2 ? 9 + index * 6 : 22 + (index - 2) * 9) + "′" })),
-    situational, skills: ["Основной spell", "Spell 2", "Основной spell", "Spell 3", "Основной spell", "Ultimate", "Основной spell", "Spell 2", "Spell 2", "Талант 10"],
-    talents: [{ level: 10, text: "+ к ключевому заклинанию" }, { level: 15, text: "Усиление выживаемости" }, { level: 20, text: "Сильный mid-game бонус" }, { level: 25, text: "Главный late-game выбор" }],
+    situational: liveBuild?.situational?.length ? liveBuild.situational : situational, skills: liveBuild?.skills?.length ? liveBuild.skills : ["Основной spell", "Spell 2", "Основной spell", "Spell 3", "Основной spell", "Ultimate", "Основной spell", "Spell 2", "Spell 2", "Талант 10"],
+    talents: liveBuild?.talents?.length ? liveBuild.talents : [{ level: 10, text: "+ к ключевому заклинанию" }, { level: 15, text: "Усиление выживаемости" }, { level: 20, text: "Сильный mid-game бонус" }, { level: 25, text: "Главный late-game выбор" }],
   };
 }

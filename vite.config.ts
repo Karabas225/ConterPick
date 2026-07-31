@@ -55,6 +55,6 @@ export default defineConfig(async () => {
         config: localBindingConfig,
       }),
       ],
-  triggers: { crons: ["0 */6 * * *"] },
+  triggers: { crons: ["0 3 * * *"] },
 };
 });
