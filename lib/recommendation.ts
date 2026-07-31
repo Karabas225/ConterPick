@@ -95,7 +95,7 @@ export function buildGuide(heroId: number, targetRole: RoleId, enemyIds: number[
   }));
   return {
     heroId: hero.id, heroName: hero.name, role: ROLE_LABELS[targetRole], sample: 780 + (hero.id * 37) % 1800,
-    source: "Dota2ProTracker · текущий патч", confidence: enemyIds.length >= 3 ? "Средняя" : "Низкая",
+    source: "Local baseline · D2PT adapter gated", confidence: enemyIds.length >= 3 ? "Средняя" : "Низкая",
     starting: starterByRole[targetRole], early: ["Magic Wand", "Boots of Speed", targetRole >= 4 ? "Smoke of Deceit" : "Power Treads"],
     core: core.map((item, index) => ({ item, timing: (index < 2 ? 9 + index * 6 : 22 + (index - 2) * 9) + "′" })),
     situational, skills: ["Основной spell", "Spell 2", "Основной spell", "Spell 3", "Основной spell", "Ultimate", "Основной spell", "Spell 2", "Spell 2", "Талант 10"],
