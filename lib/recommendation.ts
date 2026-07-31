@@ -1,9 +1,10 @@
 import { CATALOG, findHero, ROLE_LABELS, type DraftHero, type RoleId } from "./dota-data";
+import { tacticalFit } from "./tactics";
 
 export type Recommendation = {
   rank: number; heroId: number; heroName: string; heroImage: string; score: number;
   confidence: "Высокая" | "Средняя" | "Низкая"; sample: number; coverage: number;
-  factors: { counter: number; synergy: number; meta: number }; reasons: string[];
+  factors: { counter: number; synergy: number; meta: number }; reasons: string[]; tactics: string[];
 };
 export type BuildGuide = {
   heroId: number; heroName: string; role: string; sample: number; source: string;
@@ -38,9 +39,10 @@ export function recommend(allies: DraftHero[], enemies: DraftHero[], targetRole:
       const games = 170 + Math.round(hash(candidate.id, enemy.id) * 1050);
       return { value: matchupAdvantage(candidate.id, enemy.id) * (games / (games + 100)), games, weight: laneBoost, enemy };
     });
+    const tactical = tacticalFit(candidate.id, allies, enemies, targetRole);
     const allyScores = allies.map((ally) => synergyAdvantage(candidate.id, ally.id));
     const counter = enemyScores.reduce((sum, row) => sum + row.value * row.weight, 0) / Math.max(1, enemyScores.reduce((sum, row) => sum + row.weight, 0));
-    const synergy = allyScores.length ? allyScores.reduce((sum, value) => sum + value, 0) / allyScores.length : 0;
+    const synergy = allies.length ? Math.max(-0.28, Math.min(0.35, tactical.score + (allyScores.reduce((sum, value) => sum + value, 0) / allies.length) * 0.25)) : 0;
     const meta = ((metaBase[candidate.id] ?? 62) + (hash(candidate.id, targetRole) - 0.5) * 10) / 100;
     const counterScore = normalize(counter, -0.3, 0.38);
     const synergyScore = normalize(synergy, -0.25, 0.32);
@@ -50,18 +52,18 @@ export function recommend(allies: DraftHero[], enemies: DraftHero[], targetRole:
     const coverage = Math.round((enemyScores.filter((row) => row.games >= 220).length / Math.max(1, enemyScores.length)) * 100);
     const confidence = coverage >= 80 && sample >= 500 ? "Высокая" : coverage >= 60 && sample >= 150 ? "Средняя" : "Низкая";
     const bestEnemies = [...enemyScores].sort((a, b) => b.value - a.value).slice(0, 2).map((row) => row.enemy.shortName);
-    const reasons = ["Сильный ответ против " + bestEnemies.join(" и ")];
-    if (allies.length) {
+    const reasons = ["Сильный ответ против " + bestEnemies.join(" и "), ...tactical.reasons];
+    if (allies.length && !tactical.reasons.some((reason) => reason.startsWith("Проверенная синергия"))) {
       const bestAlly = allies[allyScores.indexOf(Math.max(...allyScores))];
       if (bestAlly) reasons.push("Синергия с " + bestAlly.shortName);
     }
     reasons.push(ROLE_LABELS[targetRole] + ": " + metaScore + " / 100 в текущей мете");
-    return { hero: candidate, score, confidence, sample, coverage, factors: { counter: counterScore, synergy: synergyScore, meta: metaScore }, reasons };
+    return { hero: candidate, score, confidence, sample, coverage, factors: { counter: counterScore, synergy: synergyScore, meta: metaScore }, reasons: [...new Set(reasons)].slice(0, 5), tactics: tactical.reasons };
   });
   return raw.sort((a, b) => b.score - a.score).slice(0, 5).map((row, index) => ({
     rank: index + 1, heroId: row.hero.id, heroName: row.hero.name, heroImage: row.hero.image,
     score: row.score, confidence: row.confidence, sample: row.sample, coverage: row.coverage,
-    factors: row.factors, reasons: row.reasons,
+    factors: row.factors, reasons: row.reasons, tactics: row.tactics,
   }));
 }
 

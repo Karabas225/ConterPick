@@ -15,6 +15,8 @@ test("server-renders the CounterPick draft board", async () => {
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /CounterPick/);
+  assert.match(html, /TACTICAL READ/);
+  assert.match(html, /Репорты и тикеты/);
   assert.match(html, /Пик, который/);
   assert.match(html, /Рассчитать контрпик/);
   assert.match(html, /Противники/);
