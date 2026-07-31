@@ -54,3 +54,10 @@ export const tickets = sqliteTable("tickets", {
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().default(now),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().default(now),
 });
+
+export const dotaUpdates = sqliteTable("dota_updates", {
+  id: integer("id").primaryKey(), source: text("source").notNull(), currentPatch: text("current_patch").notNull(),
+  status: text("status").notNull().default("unknown"), payload: text("payload").notNull().default("{}"),
+  checkedAt: integer("checked_at", { mode: "timestamp_ms" }).notNull().default(now),
+  sourceUpdatedAt: integer("source_updated_at", { mode: "timestamp_ms" }),
+});

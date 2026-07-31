@@ -1,6 +1,7 @@
 /** Cloudflare Worker entry point for the vinext-starter template. */
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
+import { refreshDotaUpdate } from "../lib/dota-monitor";
 
 interface Env {
   ASSETS: Fetcher;
@@ -18,6 +19,8 @@ interface ExecutionContext {
   waitUntil(promise: Promise<unknown>): void;
   passThroughOnException(): void;
 }
+
+interface ScheduledController { cron: string; scheduledTime: number; }
 
 // Image security config. SVG sources with .svg extension auto-skip the
 // optimization endpoint on the client side (served directly, no proxy).
@@ -41,6 +44,9 @@ const worker = {
     }
 
     return handler.fetch(request, env, ctx);
+  },
+  async scheduled(_controller: ScheduledController, _env: Env, ctx: ExecutionContext) {
+    ctx.waitUntil(refreshDotaUpdate(true));
   },
 };
 

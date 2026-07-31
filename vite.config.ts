@@ -54,6 +54,7 @@ export default defineConfig(async () => {
         viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
         config: localBindingConfig,
       }),
-    ],
-  };
+      ],
+  triggers: { crons: ["0 */6 * * *"] },
+};
 });

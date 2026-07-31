@@ -1,4 +1,4 @@
-import { CATALOG, findHero, ROLE_LABELS, type DraftHero, type RoleId } from "./dota-data";
+import { CATALOG, findHero, PATCH, ROLE_LABELS, type DraftHero, type RoleId } from "./dota-data";
 import { tacticalFit } from "./tactics";
 
 export type Recommendation = {
@@ -7,7 +7,7 @@ export type Recommendation = {
   factors: { counter: number; synergy: number; meta: number }; reasons: string[]; tactics: string[];
 };
 export type BuildGuide = {
-  heroId: number; heroName: string; role: string; sample: number; source: string;
+  heroId: number; heroName: string; role: string; patch?: string; sample: number; source: string;
   confidence: "Высокая" | "Средняя" | "Низкая"; starting: string[]; early: string[];
   core: { item: string; timing: string }[]; situational: { item: string; reason: string; lift?: string }[];
   skills: string[]; talents: { level: number; text: string }[];
@@ -74,12 +74,25 @@ const starterByRole: Record<RoleId, string[]> = {
   4: ["Tango", "Observer Ward", "Blood Grenade", "Magic Stick"],
   5: ["Tango", "Sentry Ward", "Blood Grenade", "Faerie Fire"],
 };
-const coreByHero: Record<number, string[]> = {
-  14: ["Arcane Boots", "Blink Dagger", "Aghanim's Shard", "Force Staff"], 17: ["Bottle", "Power Treads", "Kaya and Sange", "Black King Bar"],
-  44: ["Power Treads", "Battle Fury", "Desolator", "Black King Bar"], 5: ["Arcane Boots", "Glimmer Cape", "Aghanim's Shard", "Force Staff"],
-  86: ["Arcane Boots", "Aether Lens", "Blink Dagger", "Aghanim's Shard"], 120: ["Arcane Boots", "Glimmer Cape", "Aghanim's Shard", "Force Staff"],
-  90: ["Arcane Boots", "Aether Lens", "Solar Crest", "Octarine Core"], 74: ["Hand of Midas", "Aghanim's Scepter", "Blink Dagger", "Black King Bar"],
-  60: ["Power Treads", "Black King Bar", "Aghanim's Scepter", "Refresher Orb"], 104: ["Phase Boots", "Blink Dagger", "Blade Mail", "Black King Bar"],
+const coreByHeroRole: Record<string, string[]> = {
+  "14:3": ["Arcane Boots", "Blink Dagger", "Aghanim's Shard", "Force Staff"], "14:4": ["Tranquil Boots", "Pavise", "Force Staff", "Glimmer Cape"], "14:5": ["Arcane Boots", "Glimmer Cape", "Aghanim's Shard", "Force Staff"],
+  "17:2": ["Bottle", "Power Treads", "Kaya and Sange", "Black King Bar"], "44:1": ["Power Treads", "Battle Fury", "Desolator", "Black King Bar"],
+  "5:4": ["Arcane Boots", "Glimmer Cape", "Aghanim's Shard", "Force Staff"], "5:5": ["Arcane Boots", "Mekansm", "Glimmer Cape", "Force Staff"],
+  "86:4": ["Arcane Boots", "Aether Lens", "Glimmer Cape", "Aghanim's Shard"], "86:5": ["Arcane Boots", "Glimmer Cape", "Aghanim's Shard", "Force Staff"],
+  "120:2": ["Bottle", "Power Treads", "Maelstrom", "Black King Bar"], "120:4": ["Arcane Boots", "Glimmer Cape", "Aghanim's Shard", "Force Staff"], "120:5": ["Arcane Boots", "Glimmer Cape", "Aghanim's Shard", "Force Staff"],
+  "90:2": ["Bottle", "Power Treads", "Kaya and Sange", "Aghanim's Scepter"], "90:4": ["Arcane Boots", "Aether Lens", "Solar Crest", "Octarine Core"], "90:5": ["Arcane Boots", "Glimmer Cape", "Aghanim's Shard", "Force Staff"],
+  "74:2": ["Hand of Midas", "Aghanim's Scepter", "Blink Dagger", "Black King Bar"], "74:4": ["Arcane Boots", "Aether Lens", "Glimmer Cape", "Aghanim's Shard"],
+  "60:2": ["Power Treads", "Black King Bar", "Aghanim's Scepter", "Refresher Orb"], "60:3": ["Phase Boots", "Blink Dagger", "Black King Bar", "Aghanim's Scepter"],
+  "104:1": ["Power Treads", "Blink Dagger", "Desolator", "Black King Bar"], "104:3": ["Phase Boots", "Blink Dagger", "Blade Mail", "Black King Bar"],
+  "97:2": ["Bottle", "Arcane Boots", "Blink Dagger", "Black King Bar"], "97:3": ["Arcane Boots", "Blink Dagger", "Harpoon", "Black King Bar"],
+  "116:2": ["Bottle", "Phase Boots", "Diffusal Blade", "Black King Bar"], "116:3": ["Phase Boots", "Blink Dagger", "Lotus Orb", "Black King Bar"],
+};
+const genericCoreByRole: Record<RoleId, string[]> = {
+  1: ["Power Treads", "Maelstrom", "Black King Bar", "Hurricane Pike"],
+  2: ["Bottle", "Power Treads", "Aghanim's Scepter", "Black King Bar"],
+  3: ["Phase Boots", "Blink Dagger", "Lotus Orb", "Black King Bar"],
+  4: ["Arcane Boots", "Glimmer Cape", "Force Staff", "Aghanim's Shard"],
+  5: ["Arcane Boots", "Mekansm", "Glimmer Cape", "Force Staff"],
 };
 const situationalPool: [string, string][] = [
   ["Black King Bar", "Нужен против плотного магического контроля"], ["Lotus Orb", "Снимает ключевые направленные дебаффы"],
@@ -89,14 +102,14 @@ const situationalPool: [string, string][] = [
 ];
 export function buildGuide(heroId: number, targetRole: RoleId, enemyIds: number[]): BuildGuide {
   const hero = findHero(heroId) ?? CATALOG[0];
-  const core = coreByHero[hero.id] ?? (targetRole <= 2 ? ["Power Treads", "Maelstrom", "Black King Bar", "Hurricane Pike"] : ["Arcane Boots", "Blink Dagger", "Force Staff", "Aghanim's Shard"]);
+  const core = coreByHeroRole[`${hero.id}:${targetRole}`] ?? genericCoreByRole[targetRole];
   const enemyNames = enemyIds.map((id) => findHero(id)?.shortName).filter(Boolean) as string[];
   const situational = situationalPool.slice(0, 4).map(([item, reason], index) => ({
     item, reason: enemyNames[index % Math.max(1, enemyNames.length)] ? reason + " против " + enemyNames[index % enemyNames.length] : reason,
     lift: (1.25 + index * 0.08).toFixed(2) + "×",
   }));
   return {
-    heroId: hero.id, heroName: hero.name, role: ROLE_LABELS[targetRole], sample: 780 + (hero.id * 37) % 1800,
+    heroId: hero.id, heroName: hero.name, role: ROLE_LABELS[targetRole], patch: PATCH, sample: 780 + (hero.id * 37) % 1800,
     source: "Local baseline · D2PT adapter gated", confidence: enemyIds.length >= 3 ? "Средняя" : "Низкая",
     starting: starterByRole[targetRole], early: ["Magic Wand", "Boots of Speed", targetRole >= 4 ? "Smoke of Deceit" : "Power Treads"],
     core: core.map((item, index) => ({ item, timing: (index < 2 ? 9 + index * 6 : 22 + (index - 2) * 9) + "′" })),
