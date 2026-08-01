@@ -120,7 +120,7 @@ async function proxy(req, res, targetPort) {
     const html = await response.text();
     const patchedHtml = html.replace(
       /<script id="_R_">import\("([^"]+)"\)<\/script>/,
-      '<script id="_R_" type="module" src="$1"></script>',
+      '<script id="_R_" type="module" async src="$1"></script>',
     );
     responseHeaders["cache-control"] = "no-store, must-revalidate";
     res.writeHead(response.status, responseHeaders);
