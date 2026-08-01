@@ -1,27 +1,42 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import "./globals.css";
 import DataFreshness from "./data-freshness";
 import BackToTop from "./back-to-top";
 import SiteAnnouncement from "./site-announcement";
 import ThemeToggle from "./theme-toggle";
 
-export const metadata: Metadata = {
+function metadataBaseFromRequest(host: string | null, forwardedProtocol: string | null) {
+  const safeHost = host?.split(",")[0]?.trim();
+  if (safeHost && /^[a-z0-9.-]+(?::\d{1,5})?$/i.test(safeHost)) {
+    const protocol = forwardedProtocol?.split(",")[0]?.trim() === "http" || safeHost.startsWith("localhost") || safeHost.startsWith("127.")
+      ? "http"
+      : "https";
+    return new URL(`${protocol}://${safeHost}`);
+  }
+
+  try {
+    return new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000");
+  } catch {
+    return new URL("http://localhost:3000");
+  }
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const requestHeaders = await headers();
+  return {
   title: "CounterPick — Dota 2 Draft Intelligence",
   description: "Контрпики и situational builds под ваш драфт Dota 2.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  metadataBase: metadataBaseFromRequest(requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host"), requestHeaders.get("x-forwarded-proto")),
   openGraph: {
     title: "CounterPick — Dota 2 Draft Intelligence",
     description: "Пик, который ломает план.",
     images: [{ url: "/og.png", width: 1536, height: 1024, alt: "CounterPick draft intelligence" }],
   },
   twitter: { card: "summary_large_image", title: "CounterPick", description: "Пик, который ломает план.", images: ["/og.png"] },
-  icons: {
-    icon: [{ url: "/assets/counterpick-logo-v2.png", type: "image/png", sizes: "192x192" }],
-    shortcut: "/assets/counterpick-logo-v2.png",
-    apple: [{ url: "/assets/counterpick-logo-v2.png", sizes: "192x192" }],
-  },
-};
+  };
+}
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="ru"><head><link rel="preload" href="/assets/counterpick-logo-v2.webp" as="image" type="image/webp" fetchPriority="high" /></head><body><ThemeToggle /><DataFreshness /><SiteAnnouncement /><BackToTop />{children}</body></html>;
+  return <html lang="ru"><head><link rel="preload" href="/assets/counterpick-logo-v2.png" as="image" type="image/png" fetchPriority="high" /><link rel="icon" href="/assets/counterpick-logo-v2.png" type="image/png" sizes="192x192" /><link rel="shortcut icon" href="/assets/counterpick-logo-v2.png" /><link rel="apple-touch-icon" href="/assets/counterpick-logo-v2.png" sizes="192x192" /></head><body><ThemeToggle /><DataFreshness /><SiteAnnouncement /><BackToTop />{children}</body></html>;
 }

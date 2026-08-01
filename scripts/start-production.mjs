@@ -97,6 +97,10 @@ async function proxy(req, res, targetPort) {
   for (const [key, value] of Object.entries(req.headers)) {
     if (value !== undefined && !hopByHop.has(key.toLowerCase())) headers.set(key, Array.isArray(value) ? value.join(", ") : value);
   }
+  // The internal Vinext server must know the public address. Without these
+  // headers, request-aware metadata resolves icons against its random port.
+  if (!headers.has("x-forwarded-host") && req.headers.host) headers.set("x-forwarded-host", req.headers.host);
+  if (!headers.has("x-forwarded-proto")) headers.set("x-forwarded-proto", req.socket.encrypted ? "https" : "http");
   const hasBody = req.method !== "GET" && req.method !== "HEAD";
   const response = await fetch(`http://127.0.0.1:${targetPort}${req.url ?? "/"}`, {
     method: req.method,
