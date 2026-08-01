@@ -56,7 +56,7 @@ npm run build
 npm run start -- --hostname 127.0.0.1 --port 3000
 ```
 
-Nginx и systemd-шаблоны находятся в `deploy/nginx/counterpick.conf` и `deploy/systemd/counterpick.service`. Сервис слушает `127.0.0.1:3000`; Nginx публикует его наружу. Если внутренний процесс недоступен, production-обёртка отвечает фирменной HTML-страницей `502`, а ошибки маршрутов показывает `app/error.tsx`.
+Nginx и systemd-шаблоны находятся в `deploy/nginx/counterpick.conf` и `deploy/systemd/counterpick.service`. Сервис слушает `127.0.0.1:3000`; Nginx публикует его наружу. Перед каждым запуском systemd собирает свежую production-версию, поэтому после обновления репозитория не остаются старые стили и ассеты. Если внутренний процесс недоступен, production-обёртка отвечает фирменной HTML-страницей `502`, а ошибки маршрутов показывает `app/error.tsx`.
 
 ## Конфигурация
 

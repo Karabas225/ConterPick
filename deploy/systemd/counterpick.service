@@ -11,6 +11,7 @@ Environment=NODE_ENV=production
 Environment=SELF_HOST=1
 Environment=SELF_HOST_DB_PATH=/opt/counterpick/data/counterpick.sqlite
 EnvironmentFile=-/etc/counterpick/counterpick.env
+ExecStartPre=/usr/bin/npm run build
 ExecStart=/usr/bin/npm run start -- --hostname 127.0.0.1 --port 3000
 Restart=always
 RestartSec=5
@@ -18,7 +19,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=full
 ProtectHome=true
-ReadWritePaths=/opt/counterpick/data
+ReadWritePaths=/opt/counterpick /opt/counterpick/data
 
 [Install]
 WantedBy=multi-user.target
