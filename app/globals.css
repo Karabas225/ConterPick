@@ -8,7 +8,9 @@
 .topbar,.hero-section,.draft-section,.results-section,.how-section,footer { width:min(1240px,calc(100% - 56px)); margin:0 auto; }
 .topbar { height:82px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line); }
 .brand { display:flex; align-items:center; gap:10px; font-weight:900; font-size:13px; letter-spacing:.12em; } .brand>span:last-child>span { color:var(--teal); }
-.brand-mark { width:30px; height:30px; display:grid; place-items:center; color:#051411; background:var(--teal); clip-path:polygon(0 0,100% 0,100% 76%,77% 100%,0 100%); font-size:10px; letter-spacing:-.08em; }
+.brand-mark { position:relative; width:30px; height:30px; display:grid; flex:none; place-items:center; overflow:hidden; border:1px solid rgba(138,241,212,.35); border-radius:8px; background:#0a1820; color:var(--teal); box-shadow:0 0 18px rgba(138,241,212,.18); font-size:8px; font-weight:900; letter-spacing:-.08em; }
+.brand-mark-image { position:absolute; inset:0; display:block; width:100%; height:100%; object-fit:cover; }
+.brand-mark-fallback { display:block; }
 .nav-links { display:flex; gap:32px; color:var(--muted); font-size:12px; } .nav-links a:hover { color:var(--text); }
 .status-chip { display:flex; align-items:center; gap:8px; color:var(--teal); font-size:10px; letter-spacing:.14em; font-weight:800; } .status-chip span,.live-dot { width:6px; height:6px; border-radius:50%; display:inline-block; background:var(--teal); box-shadow:0 0 14px var(--teal); }
 .hero-section { min-height:440px; display:grid; grid-template-columns:1fr .75fr; align-items:center; padding:52px 0 66px; }
@@ -114,7 +116,7 @@ footer { min-height:84px; display:flex; align-items:center; gap:24px; border-top
 .message-state.off { color:var(--red); }
 .success-text { color:var(--teal); font-size:9px; }
 
-:root[data-theme="light"] .brand-mark { color:#effaf8; background:var(--teal2); }
+:root[data-theme="light"] .brand-mark { background:#dff5ef; color:#087d70; }
 :root[data-theme="light"] .picker-results { background:#ffffff; box-shadow:0 18px 32px rgba(12,38,45,.16); }
 :root[data-theme="light"] .role-select { background:#ffffff; }
 :root[data-theme="light"] .auth-popover { background:#ffffff; box-shadow:0 18px 45px rgba(12,38,45,.18); }
@@ -128,8 +130,6 @@ footer { min-height:84px; display:flex; align-items:center; gap:24px; border-top
 :root[data-theme="light"] .admin-metric { background:#f4faf9; }
 :root[data-theme="light"] .ticket-desk,:root[data-theme="light"] .account-callout,:root[data-theme="light"] .admin-card { background:rgba(255,255,255,.9); }
 :root[data-theme="light"] .calculate-button { color:#f6fffd; }
-
-.brand-mark { background: url('/assets/counterpick-logo-v2.png') center/cover no-repeat; color:transparent; clip-path:none; border-radius:8px; box-shadow:0 0 18px rgba(138,241,212,.18); }
 
 @media (max-width:560px) { .theme-toggle { right:14px; bottom:14px; } .global-data-status { right:14px; bottom:62px; width:calc(100% - 28px); } .site-announcement { top:78px; right:14px; width:calc(100% - 28px); } .admin-message-row { grid-template-columns:1fr; align-items:stretch; } }
 

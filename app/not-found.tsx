@@ -1,11 +1,12 @@
 import Link from "next/link";
+import BrandMark from "./brand-mark";
 
 export default function NotFound() {
   return (
     <main className="not-found-shell">
       <nav className="not-found-nav" aria-label="Навигация страницы ошибки">
         <Link className="brand" href="/" aria-label="CounterPick — на главную">
-          <span className="brand-mark" />
+          <BrandMark />
           <span>COUNTER<span>PICK</span></span>
         </Link>
         <span className="not-found-status"><i /> CONNECTION LOST / 404</span>

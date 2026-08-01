@@ -38,5 +38,5 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="ru"><head><link rel="preload" href="/assets/counterpick-logo-v2.png" as="image" type="image/png" fetchPriority="high" /><link rel="icon" href="/assets/counterpick-logo-v2.png" type="image/png" sizes="192x192" /><link rel="shortcut icon" href="/assets/counterpick-logo-v2.png" /><link rel="apple-touch-icon" href="/assets/counterpick-logo-v2.png" sizes="192x192" /></head><body><ThemeToggle /><DataFreshness /><SiteAnnouncement /><BackToTop />{children}</body></html>;
+  return <html lang="ru"><head><link rel="preload" href="/assets/counterpick-mark-v3.png" as="image" type="image/png" fetchPriority="high" /><link rel="icon" href="/assets/counterpick-mark-v3.png" type="image/png" sizes="192x192" /><link rel="apple-touch-icon" href="/assets/counterpick-mark-v3.png" sizes="192x192" /></head><body><ThemeToggle /><DataFreshness /><SiteAnnouncement /><BackToTop />{children}</body></html>;
 }
