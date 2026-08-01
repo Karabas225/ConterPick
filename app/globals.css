@@ -129,7 +129,7 @@ footer { min-height:84px; display:flex; align-items:center; gap:24px; border-top
 :root[data-theme="light"] .ticket-desk,:root[data-theme="light"] .account-callout,:root[data-theme="light"] .admin-card { background:rgba(255,255,255,.9); }
 :root[data-theme="light"] .calculate-button { color:#f6fffd; }
 
-.brand-mark { background: url('/counterpick-logo.png') center/cover no-repeat; color:transparent; clip-path:none; border-radius:8px; box-shadow:0 0 18px rgba(138,241,212,.18); }
+.brand-mark { background: url('/assets/counterpick-logo-v2.webp') center/cover no-repeat; color:transparent; clip-path:none; border-radius:8px; box-shadow:0 0 18px rgba(138,241,212,.18); }
 
 @media (max-width:560px) { .theme-toggle { right:14px; bottom:14px; } .global-data-status { right:14px; bottom:62px; width:calc(100% - 28px); } .site-announcement { top:78px; right:14px; width:calc(100% - 28px); } .admin-message-row { grid-template-columns:1fr; align-items:stretch; } }
 

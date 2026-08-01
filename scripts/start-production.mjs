@@ -74,6 +74,8 @@ async function serveStatic(req, res) {
     const file = await stat(filename);
     if (!file.isFile()) return false;
     const ext = path.extname(filename).toLowerCase();
+    // Files below /assets have versioned names. They can be held by browser and
+    // proxy caches for a long time; a future logo or bundle gets a new path.
     const isAsset = (req.url ?? "").split("?")[0].startsWith("/assets/");
     res.writeHead(200, {
       "Content-Type": contentTypes[ext] ?? "application/octet-stream",
