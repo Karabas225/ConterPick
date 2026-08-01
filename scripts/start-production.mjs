@@ -72,18 +72,12 @@ async function serveStatic(req, res) {
   if (req.method !== "GET" && req.method !== "HEAD") return false;
   const urlPath = (req.url ?? "/").split("?")[0];
   let filename = safeClientPath(req.url ?? "/");
-  let isBootstrapAlias = false;
-
-  // This stable alias is intentionally resolved at request time. It always
-  // points to the current hashed Vinext entry after a restart, while imports
-  // inside that entry stay relative to /assets and continue to work normally.
-  if (urlPath === clientBootstrapAlias) {
+  const isBootstrapAlias = urlPath === clientBootstrapAlias;
+  if (isBootstrapAlias) {
     const assetsDir = path.join(clientDir, "assets");
     const entryName = (await readdir(assetsDir)).find((name) => /^index-[A-Za-z0-9_-]+\.js$/.test(name));
     filename = entryName ? path.join(assetsDir, entryName) : null;
-    isBootstrapAlias = true;
   }
-
   if (!filename) return false;
   try {
     const file = await stat(filename);
@@ -132,20 +126,20 @@ async function proxy(req, res, targetPort) {
   const cookies = response.headers.getSetCookie?.() ?? [];
   if (cookies.length) responseHeaders["set-cookie"] = cookies;
 
-  // Vinext emits the initial client bootstrap as an inline dynamic import:
-  //   import("/assets/index-<hash>.js")
-  // Some VPN/browser filtering combinations reject that exact request with
-  // ERR_BLOCKED_BY_CLIENT even though the same file is available by URL. A
-  // A regular module script under a neutral, same-directory alias gives the
-  // browser an equivalent dependency graph, but starts it through the
-  // standard script loader. Keep this narrowly scoped to the generated
-  // bootstrap and leave all other HTML untouched.
+  // RSC is embedded into the document as inline scripts. Sending this HTML as
+  // one complete response prevents a reverse proxy from closing a chunked
+  // response between RSC records, which otherwise leaves the page visible but
+  // unhydrated (links work while React buttons do not).
   const isHtml = (response.headers.get("content-type") ?? "").toLowerCase().includes("text/html");
   if (isHtml && response.body) {
     const html = await response.text();
+    // Preserve Vinext's asynchronous bootstrap timing: the client starts
+    // before the following RSC records are parsed. Only its public URL is
+    // changed so browser/VPN filters do not reject a freshly hashed module.
     const normalizedHtml = html
       .replace(/<link\b(?=[^>]*\brel=["']modulepreload["'])(?=[^>]*\bhref=["']\/assets\/index-[^"']+\.js["'])[^>]*>/g, "")
-      .replace(/<script id="_R_">import\((['"])(\/assets\/index-[^'"]+\.js)\1\)<\/script>/, `<script type="module" src="${clientBootstrapAlias}"></script>`);
+      .replace(/<script id="_R_">import\((['"])(\/assets\/index-[^'"]+\.js)\1\)<\/script>/, `<script id="_R_">import("${clientBootstrapAlias}")</script>`);
+    responseHeaders["content-length"] = String(Buffer.byteLength(normalizedHtml));
     res.writeHead(response.status, responseHeaders);
     res.end(normalizedHtml);
     return;

@@ -1,3 +1,5 @@
+/* eslint-disable @next/next/no-img-element */
+
 const BRAND_MARK_SRC = "/assets/counterpick-mark-v3.png";
 
 export default function BrandMark() {

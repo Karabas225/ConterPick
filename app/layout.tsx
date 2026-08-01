@@ -6,10 +6,13 @@ import BackToTop from "./back-to-top";
 import SiteAnnouncement from "./site-announcement";
 import ThemeToggle from "./theme-toggle";
 
-function metadataBaseFromRequest(host: string | null, forwardedProtocol: string | null) {
+function metadataBaseFromRequest(host: string | null) {
   const safeHost = host?.split(",")[0]?.trim();
   if (safeHost && /^[a-z0-9.-]+(?::\d{1,5})?$/i.test(safeHost)) {
-    const protocol = forwardedProtocol?.split(",")[0]?.trim() === "http" || safeHost.startsWith("localhost") || safeHost.startsWith("127.")
+    // The VDS terminates TLS before the VPN hop and currently forwards
+    // `X-Forwarded-Proto: http`. Public metadata must still keep HTTPS URLs;
+    // only an explicitly local host is allowed to use plain HTTP.
+    const protocol = safeHost.startsWith("localhost") || safeHost.startsWith("127.") || safeHost.startsWith("192.168.")
       ? "http"
       : "https";
     return new URL(`${protocol}://${safeHost}`);
@@ -27,7 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
   title: "CounterPick — Dota 2 Draft Intelligence",
   description: "Контрпики и situational builds под ваш драфт Dota 2.",
-  metadataBase: metadataBaseFromRequest(requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host"), requestHeaders.get("x-forwarded-proto")),
+  metadataBase: metadataBaseFromRequest(requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host")),
   openGraph: {
     title: "CounterPick — Dota 2 Draft Intelligence",
     description: "Пик, который ломает план.",
