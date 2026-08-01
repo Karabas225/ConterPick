@@ -10,14 +10,19 @@ function applyTheme(theme: Theme) {
   document.documentElement.style.colorScheme = theme;
 }
 
-function initialTheme(): Theme {
-  if (typeof window === "undefined") return "dark";
+function preferredTheme(): Theme {
   const saved = window.localStorage.getItem(STORAGE_KEY);
   return saved === "light" || saved === "dark" ? saved : window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>(initialTheme);
+  // The first client render must equal the server render. Reading localStorage
+  // during useState caused a hydration mismatch for players with a saved theme.
+  const [theme, setTheme] = useState<Theme>("dark");
+
+  useEffect(() => {
+    setTheme(preferredTheme());
+  }, []);
 
   useEffect(() => {
     applyTheme(theme);
