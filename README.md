@@ -1,188 +1,83 @@
 # CounterPick
 
-CounterPick — некоммерческий русскоязычный помощник драфта Dota 2. Пользователь выбирает свою позицию, союзников и противников, после чего получает пять контрпиков с объяснением выбора и сборкой именно под выбранную роль.
+Русскоязычный помощник драфта Dota 2. Он рекомендует пять героев на выбранную позицию и даёт ролевую сборку под соперников, союзников, стратегию и формат ближайшей стычки.
 
-Проект рассчитан на самостоятельный запуск на Linux или Windows за Nginx/Apache/reverse proxy. Папка `.openai` и связанные с ней настройки удалены: приложение не требует ChatGPT-hosting и запускается как обычный Node.js-сервис.
+## Что умеет
 
-## Возможности
+- поиск по официальным английским именам, русским названиям, распространённым никам, транслитерации и небольшим опечаткам;
+- выбор позиции P1–P5, до 4 союзников и до 5 противников без повторов;
+- сценарии `Авто`, `1×1`, `2×2`, `3×3` и `5×5`; отмеченные участники линии получают повышенный вес;
+- стратегии: гибкий план, давление линии, пики, командные драки, давление по карте и лейт;
+- пять рекомендаций, отсортированных по итоговому рейтингу: matchup, союзная синергия, мета позиции и тактическая совместимость;
+- role-safe сборки: core и ситуативные предметы не смешивают мид, керри, оффлейн и саппортов;
+- изображения героев и предметов, адаптивный интерфейс, светлая и тёмная темы;
+- регистрация по email или телефону, отзывы о пиках, тикеты и админ-панель;
+- красивые страницы для 404 и 50x ошибок.
 
-- до 4 союзников и 5 противников с поиском по английским и русским названиям;
-- пять рекомендаций с итоговым баллом, уверенностью, выборкой, matchup, ally fit и тактическими причинами;
-- role-safe сборка: рекомендации предметов фильтруются по позиции героя и не подменяют саппорт-сборкой мидера;
-- стартовые, ранние и core-предметы, ситуативные предметы, порядок навыков и таланты;
-- регистрация и вход по email или телефону;
-- отметка «использовал пик», комментарий и обратная связь;
-- тикеты поддержки, которые может закрыть автор или администратор;
-- админ-панель со статистикой, таблицами, feedback, тикетами и глобальным сообщением;
-- автоматическая тёмная тема, ручное переключение на светлую и кнопка возврата наверх;
-- ежедневный мониторинг патча, меты и pro-сборок при запуске и далее каждые 24 часа;
-- отдельная адаптивная страница 404 в стиле CounterPick.
+## Данные и обновления
 
-## Требования
+При запуске и затем раз в 24 часа приложение проверяет актуальный патч, каталог и мету через Valve Patch Notes, Steam News и OpenDota. Последний удачный снимок остаётся доступным при временной недоступности источника.
 
-- Node.js `>=22.13.0`;
-- npm `>=10`;
-- исходящий HTTPS-доступ к Valve, Steam, OpenDota и разрешённому feed сборок.
+При `D2PT_PERMISSION_CONFIRMED=1` сервер последовательно (не чаще одного запроса в секунду) использует разрешённые страницы Dota2ProTracker: `/meta`, `/combos` и `/builds`. Это добавляет pro-мету, matchup/synergy и ролевые pro-сборки. Включайте этот флаг только при сохранённом письменном разрешении на такой способ использования.
 
-При недоступности источников приложение показывает последний успешный снимок и статус `stale/error`, не выдумывая новые рекомендации.
+Cloudflare Worker запускает такую же проверку по ежедневному cron. В self-hosted режиме ежедневное обновление также запускается таймером процесса.
 
-## Запуск локально на Linux/macOS
+## Быстрый запуск
+
+Требуется Node.js **22.13+** и npm **10+**.
+
+### Linux / macOS
 
 ```bash
-git clone <repository-url>
-cd ConterPick
 npm ci
-cp .env.example .env
+cp config/counterpick.env.template .env
 npm run dev
 ```
 
-Откройте <http://localhost:3000>.
+Откройте `http://localhost:3000`.
 
-Проверка production-режима:
+### Windows PowerShell
+
+```powershell
+npm.cmd ci
+Copy-Item config\counterpick.env.template .env
+npm.cmd run dev
+```
+
+Если PowerShell блокирует `npm.ps1`, всегда используйте `npm.cmd`, а также готовые `build.cmd`, `dev.cmd` и `start.cmd`.
+
+## Production на сервере
 
 ```bash
+npm ci
+cp config/counterpick.env.template .env
+# Отредактируйте .env: домен, админскую почту, опциональный build-feed.
 npm run build
 npm run start -- --hostname 127.0.0.1 --port 3000
 ```
 
-## Запуск локально на Windows PowerShell
+Nginx и systemd-шаблоны находятся в `deploy/nginx/counterpick.conf` и `deploy/systemd/counterpick.service`. Сервис слушает `127.0.0.1:3000`; Nginx публикует его наружу. Если внутренний процесс недоступен, production-обёртка отвечает фирменной HTML-страницей `502`, а ошибки маршрутов показывает `app/error.tsx`.
 
-```powershell
-Set-Location .\ConterPick
-& npm.cmd ci
-Copy-Item .env.example .env
-& npm.cmd run dev
-```
+## Конфигурация
 
-Для production:
-
-```powershell
-& npm.cmd run build
-& npm.cmd run start -- --hostname 127.0.0.1 --port 3000
-```
-
-Если PowerShell блокирует `npm.ps1`, используйте `npm.cmd` или готовые файлы:
-
-```powershell
-.\dev.cmd
-.\build.cmd
-.\start.cmd --hostname 127.0.0.1 --port 3000
-```
-
-Не открывайте `dist` двойным кликом через `file://`: API, SSR и CSS работают только через dev- или production-сервер.
-
-## Переменные окружения
-
-Шаблон находится в [.env.example](.env.example). Файл `.env` не добавляется в Git.
+Не коммитьте `.env`, базу SQLite или папку `data`. В репозиторий добавлен только безопасный шаблон [`config/counterpick.env.template`](config/counterpick.env.template).
 
 | Переменная | Назначение |
-|---|---|
-| `SELF_HOST=1` | Включает SQLite self-host режим. |
-| `SELF_HOST_DB_PATH` | Путь к SQLite, обычно `./data/counterpick.sqlite`. |
-| `COUNTERPICK_ADMIN_EMAILS` | Email администраторов через запятую. |
-| `D2PT_PERMISSION_CONFIRMED=1` | Включает D2PT только при наличии письменного разрешения. |
-| `DOTA_BUILD_FEED_URL` | Необязательный разрешённый JSON feed сборок. |
-| `NEXT_PUBLIC_SITE_URL` | Публичный URL для metadata и Open Graph. |
+| --- | --- |
+| `SELF_HOST` | `1` для Node/Nginx-режима. |
+| `SELF_HOST_DB_PATH` | Путь к SQLite-файлу. |
+| `COUNTERPICK_ADMIN_EMAILS` | Email администратора через запятую. |
+| `D2PT_PERMISSION_CONFIRMED` | `1` только при действующем разрешении D2PT. |
+| `DOTA_BUILD_FEED_URL` | Необязательный HTTPS JSON feed ролевых сборок. |
+| `NEXT_PUBLIC_SITE_URL` | Публичный URL сайта для метаданных. |
 
-Администратор создаёт обычный аккаунт с email из `COUNTERPICK_ADMIN_EMAILS`, затем входит в приложение. Отдельного пароля админки нет.
-
-## Данные и обновления
-
-Production-скрипт `scripts/start-production.mjs` вызывает обновление при старте и повторяет его раз в 24 часа. В Cloudflare Worker сохранён scheduled-хук с тем же интервалом.
-
-Используемые источники:
-
-1. официальные Valve Patch Notes;
-2. Steam News как резервный источник патча;
-3. OpenDota Hero Stats для меты и matchup;
-4. D2PT `/meta` и `/builds` только при подтверждённом разрешении;
-5. `DOTA_BUILD_FEED_URL` для разрешённого JSON feed.
-
-Последний успешный снимок хранится в SQLite. Файл базы создаётся в `data/` и исключён из Git.
-
-## API
-
-- `GET /api/catalog` — каталог героев, русские псевдонимы, портреты и роли;
-- `POST /api/recommendations` — расчёт пяти контрпиков;
-- `POST /api/build-guide` — гайд для `{ heroId, targetRole, enemyHeroIds }`;
-- `GET /api/updates` — текущий патч, статусы источников и время обновления;
-- `GET /api/site-message` — активное глобальное сообщение;
-- `POST /api/feedback` — feedback по рекомендованному герою;
-- `POST /api/tickets` и `PATCH /api/tickets/:id` — создание и закрытие тикетов;
-- `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout` — аккаунты.
-
-Неизвестные герои, дубли и превышение лимитов возвращают структурированную ошибку.
-
-## Production: Linux + systemd + Nginx
-
-Шаблоны находятся в `deploy/systemd/counterpick.service` и `deploy/nginx/counterpick.conf`.
+## Проверка перед релизом
 
 ```bash
-sudo mkdir -p /opt/counterpick
-sudo chown -R counterpick:counterpick /opt/counterpick
-cd /opt/counterpick
-npm ci
-npm run build
-
-sudo cp deploy/systemd/counterpick.service /etc/systemd/system/counterpick.service
-sudo cp deploy/nginx/counterpick.conf /etc/nginx/sites-available/counterpick
-# замените User, WorkingDirectory и server_name в шаблонах
-sudo ln -s /etc/nginx/sites-available/counterpick /etc/nginx/sites-enabled/counterpick
-sudo nginx -t
-sudo systemctl daemon-reload
-sudo systemctl enable --now counterpick
-sudo systemctl reload nginx
-```
-
-Сервис слушает `127.0.0.1:3000`, Nginx публикует сайт наружу. Перед обновлением приложения сделайте резервную копию `data/counterpick.sqlite`.
-
-Для Windows production используйте `start.cmd` через NSSM, WinSW или планировщик задач, а Nginx настройте как reverse proxy на `127.0.0.1:3000`.
-
-## Cloudflare Worker (необязательно)
-
-Self-host запуск не требует Cloudflare-конфигурации. Если нужен Worker, bindings находятся в нейтральном файле [config/cloudflare.json](config/cloudflare.json):
-
-```json
-{
-  "d1": "DB",
-  "r2": null
-}
-```
-
-Файл используется только `vite.config.ts` для локальной конфигурации Cloudflare Vite plugin. Изменяйте binding `d1`, если имя D1-базы в вашем Worker отличается.
-
-## Проверка перед commit/deploy
-
-```bash
-npm ci
-npm run lint
 npm test
 npm run build
 ```
 
-После запуска проверьте:
-
-```bash
-curl -fsS http://127.0.0.1:3000/
-curl -fsS http://127.0.0.1:3000/api/updates
-curl -fsS http://127.0.0.1:3000/api/catalog
-curl -i http://127.0.0.1:3000/unknown-route
-```
-
-Последний запрос должен вернуть HTTP `404` и фирменную страницу «Пик ушёл в туман».
-
-## Структура
-
-- `app/` — интерфейс, 404 и API routes;
-- `lib/` — авторизация, SQLite/D1-адаптер, рейтинг, мониторинг и telemetry;
-- `config/cloudflare.json` — необязательные Cloudflare bindings без платформенной папки;
-- `drizzle/` — миграции базы;
-- `scripts/start-production.mjs` — self-host production server;
-- `deploy/` — systemd и Nginx;
-- `public/counterpick-logo.png` — логотип CounterPick.
-
-## Важно
-
-Проект некоммерческий. Использование данных D2PT должно соответствовать письменному разрешению и условиям источника. Не добавляйте `.env`, SQLite-файлы, `node_modules` и production-кеши в commit.
+После старта проверьте `/`, `/api/catalog`, `/api/updates`, расчёт драфта, открытие сборки, вход/регистрацию и создание тикета. `GET /api/updates` должен показать актуальный статус источников и время последнего снимка.
 
 Автор: **Karabas**

@@ -49,6 +49,10 @@ const contentTypes = {
   ".woff2": "font/woff2",
 };
 
+function serviceUnavailablePage() {
+  return `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CounterPick — сервис временно недоступен</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:radial-gradient(circle at 78% 20%,#193d3d,transparent 35%),#080d13;color:#f3f8fa;font:16px Arial,sans-serif}.card{width:min(620px,calc(100% - 40px));padding:48px;border:1px solid #28494a;background:#101923;box-shadow:0 30px 100px #0008}.eyebrow{color:#8af1d4;font-size:11px;font-weight:700;letter-spacing:.16em}.code{margin:24px 0 4px;color:#ff756f;font-size:clamp(82px,18vw,150px);font-weight:900;letter-spacing:-.1em;line-height:.8}.code span{color:#f5a466}h1{margin:24px 0 14px;font-size:clamp(32px,7vw,56px);line-height:.95;letter-spacing:-.06em}em{color:#8af1d4;font-style:normal}p{max-width:480px;color:#93a6b2;line-height:1.6}a{display:inline-block;margin-top:22px;padding:13px 17px;background:#8af1d4;color:#07201c;text-decoration:none;font-weight:700}small{display:block;margin-top:38px;color:#93a6b2;font-size:10px;letter-spacing:.08em}</style></head><body><main class="card"><span class="eyebrow">SERVICE STATUS / 5XX</span><div class="code">50<span>×</span></div><h1>Сервис на короткой<br><em>перезагрузке.</em></h1><p>Мы не смогли обработать запрос. Попробуйте ещё раз через несколько секунд — данные драфта не потеряны.</p><a href="/">Вернуться к драфту</a><small>COUNTERPICK / DOTA 2 DRAFT INTELLIGENCE · by Karabas</small></main></body></html>`;
+}
+
 function safeClientPath(urlPath) {
   let decoded;
   try {
@@ -119,8 +123,8 @@ const server = createServer(async (req, res) => {
     await proxy(req, res, internal.port);
   } catch (error) {
     console.error("[counterpick] request failed", error);
-    if (!res.headersSent) res.writeHead(502, { "content-type": "text/plain; charset=utf-8" });
-    res.end("CounterPick upstream is unavailable");
+    if (!res.headersSent) res.writeHead(502, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "retry-after": "15" });
+    res.end(serviceUnavailablePage());
   }
 });
 

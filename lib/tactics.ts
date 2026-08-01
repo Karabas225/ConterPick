@@ -1,6 +1,17 @@
 import type { DraftHero, RoleId } from "./dota-data";
 
-export type TacticTag = "catch" | "teamfight" | "waveclear" | "save" | "push" | "scaling" | "anti-heal" | "anti-mobility" | "anti-illusion" | "anti-physical" | "anti-magic" | "vision" | "roam";
+export type TacticTag = "catch" | "teamfight" | "waveclear" | "save" | "push" | "scaling" | "anti-heal" | "anti-mobility" | "anti-illusion" | "anti-physical" | "anti-magic" | "anti-melee" | "vision" | "roam";
+
+export type StrategyId = "balanced" | "lane-pressure" | "pickoff" | "teamfight" | "map-pressure" | "late-game";
+
+export const STRATEGIES: Record<StrategyId, { label: string; short: string; wants: TacticTag[]; itemFocus: string[] }> = {
+  balanced: { label: "Гибкий план", short: "Не жертвовать линией ради поздней игры", wants: ["catch", "teamfight"], itemFocus: [] },
+  "lane-pressure": { label: "Давить линию", short: "Выиграть ранние размены и снести внешние башни", wants: ["roam", "anti-melee", "push"], itemFocus: ["Phase Boots", "Drum of Endurance", "Urn of Shadows"] },
+  pickoff: { label: "Пики и смоки", short: "Создавать численное преимущество до большого файта", wants: ["catch", "roam", "vision"], itemFocus: ["Blink Dagger", "Orchid Malevolence", "Smoke of Deceit"] },
+  teamfight: { label: "Командные драки", short: "Играть вокруг кулдаунов и одного решающего файта", wants: ["teamfight", "save", "anti-magic"], itemFocus: ["Blink Dagger", "Black King Bar", "Pipe of Insight"] },
+  "map-pressure": { label: "Давление по карте", short: "Разводить соперника по линиям и быстро брать объекты", wants: ["push", "waveclear", "anti-mobility"], itemFocus: ["Boots of Travel", "Manta Style", "Gleipnir"] },
+  "late-game": { label: "Поздняя игра", short: "Сохранить керри-экономику и надёжно пережить мидгейм", wants: ["scaling", "save", "anti-physical"], itemFocus: ["Black King Bar", "Satanic", "Aghanim's Scepter"] },
+};
 
 // Сигналы собраны по типовым разделам D2PT Combos, Dota Coach guides, Dotabuff Hero Guides и STRATZ composition data.
 const heroTactics: Record<number, TacticTag[]> = {
@@ -53,10 +64,18 @@ const tacticCopy: Partial<Record<TacticTag, string>> = {
   roam: "Может создавать численное преимущество до появления core-предметов",
 };
 
-function tagsFor(id: number) { return heroTactics[id] ?? []; }
+export function tagsFor(id: number) { return heroTactics[id] ?? []; }
 function clamp(value: number, min: number, max: number) { return Math.max(min, Math.min(max, value)); }
 
-export function tacticalFit(candidateId: number, allies: DraftHero[], enemies: DraftHero[], targetRole: RoleId) {
+export function strategyFit(candidateId: number, strategy: StrategyId) {
+  const candidateTags = new Set(tagsFor(candidateId));
+  const plan = STRATEGIES[strategy];
+  const fulfilled = plan.wants.filter((tag) => candidateTags.has(tag)).length;
+  const score = clamp((fulfilled / Math.max(1, plan.wants.length)) * 0.2 - (fulfilled === 0 ? 0.06 : 0), -0.06, 0.2);
+  return { score, fulfilled, reason: fulfilled ? `Поддерживает стратегию «${plan.label}»: ${plan.short}` : `Не ломает стратегию «${plan.label}»` };
+}
+
+export function tacticalFit(candidateId: number, allies: DraftHero[], enemies: DraftHero[], targetRole: RoleId, strategy: StrategyId = "balanced") {
   const candidateTags = new Set(tagsFor(candidateId));
   const enemyTags = new Set(enemies.flatMap((enemy) => threatTags[enemy.id] ?? []));
   const allyTags = new Set(allies.flatMap((ally) => tagsFor(ally.id)));
@@ -67,11 +86,13 @@ export function tacticalFit(candidateId: number, allies: DraftHero[], enemies: D
   const complementary = allies.reduce((sum, ally) => sum + (tagsFor(ally.id).some((tag) => (tag === "catch" && candidateTags.has("teamfight")) || (tag === "teamfight" && candidateTags.has("catch")) || (tag === "save" && candidateTags.has("scaling"))) ? 1 : 0), 0);
   const missingTeamTools = ["catch", "teamfight", "save", "push"].filter((tag) => !allyTags.has(tag as TacticTag) && candidateTags.has(tag as TacticTag)).length;
   const roleConflict = allies.filter((ally) => ally.role === targetRole).length;
-  const score = clamp((explicitPairs * 0.18) + (complementary * 0.06) + (missingTeamTools * 0.045) + (fulfilledNeeds * 0.045) + (directlyAnswered * 0.05) - (roleConflict * 0.08), -0.28, 0.35);
+  const strategic = strategyFit(candidateId, strategy);
+  const score = clamp((explicitPairs * 0.18) + (complementary * 0.06) + (missingTeamTools * 0.045) + (fulfilledNeeds * 0.045) + (directlyAnswered * 0.05) + strategic.score - (roleConflict * 0.08), -0.28, 0.35);
   const actions = [...new Set([...enemyTags].filter((tag) => candidateTags.has(tag) || candidateTags.has(`anti-${tag.replace("anti-", "")}` as TacticTag)).map((tag) => tacticCopy[tag]).filter(Boolean))].slice(0, 2) as string[];
   const reasons = [
     ...allies.filter((ally) => pairSynergy[candidateId]?.includes(ally.id)).slice(0, 2).map((ally) => `Проверенная синергия с ${ally.shortName}`),
     ...actions,
+    ...(strategy !== "balanced" ? [strategic.reason] : []),
   ];
   if (missingTeamTools > 0) reasons.push(`Закрывает дефицит команды: ${["catch", "teamfight", "save", "push"].filter((tag) => !allyTags.has(tag as TacticTag) && candidateTags.has(tag as TacticTag)).join(", ")}`);
   if (roleConflict > 0) reasons.push("У союзника уже заявлена эта позиция — проверьте распределение ролей");

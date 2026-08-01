@@ -15,10 +15,11 @@ test("server-renders the CounterPick draft board", async () => {
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /CounterPick/);
-  assert.match(html, /TACTICAL READ/);
+  assert.match(html, /СЦЕНАРИЙ СТЫЧКИ/);
+  assert.match(html, /ПЛАН НА ИГРУ/);
   assert.match(html, /Репорты и тикеты/);
-  assert.match(html, /Пик, который/);
-  assert.match(html, /Рассчитать контрпик/);
+  assert.match(html, /Пик для/);
+  assert.match(html, /Рассчитать контрпики/);
   assert.match(html, /Противники/);
   assert.doesNotMatch(html, /Your site is taking shape/);
   assert.doesNotMatch(html, /codex-preview/);
@@ -32,6 +33,25 @@ test("catalog and recommendation endpoints validate requests", async () => {
 
   const invalid = await render("/api/recommendations");
   assert.equal(invalid.status, 405);
+});
+
+test("classic mode preserves the previous draft ranking without lane tactics", async () => {
+  const response = await render("/api/recommendations", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      targetRole: 2,
+      allies: [{ heroId: 5, role: 5 }],
+      enemies: [{ heroId: 14, role: 3, lane: true }, { heroId: 17, role: 2, lane: true }],
+      mode: "classic",
+      strategy: "lane-pressure",
+      encounter: "solo",
+    }),
+  });
+  assert.equal(response.status, 200);
+  const result = await response.json();
+  assert.equal(result.recommendations.length, 5);
+  assert.match(result.recommendations[0].battle, /Классический режим/);
 });
 
 test("build guides respect the requested role", async () => {

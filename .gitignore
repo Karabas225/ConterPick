@@ -28,9 +28,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# Runtime secrets stay local. The committed installation template lives in
+# config/counterpick.env.template and is not loaded automatically.
 .env*
-!.env.example
 
 # vercel
 .vercel
