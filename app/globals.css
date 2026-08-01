@@ -1,4 +1,6 @@
+/* Release marker: rotate the immutable stylesheet after the interrupted logo deployment. */
 @import "tailwindcss";
+:root { --counterpick-release: "20260802.2"; }
 :root { --bg:#edf4f3; --surface:#ffffff; --surface2:#f5faf9; --line:rgba(20,55,65,.14); --text:#10232a; --muted:#5c737b; --teal:#087d70; --teal2:#0d9c88; --red:#c84d4c; --orange:#b86a1e; color-scheme:light; }
 @media (prefers-color-scheme:dark) { :root:not([data-theme]) { --bg:#080d13; --surface:#101923; --surface2:#151f2b; --line:rgba(180,210,228,.12); --text:#f3f8fa; --muted:#93a6b2; --teal:#8af1d4; --teal2:#34c7ac; --red:#ff756f; --orange:#f5a466; color-scheme:dark; } }
 :root[data-theme="dark"] { --bg:#080d13; --surface:#101923; --surface2:#151f2b; --line:rgba(180,210,228,.12); --text:#f3f8fa; --muted:#93a6b2; --teal:#8af1d4; --teal2:#34c7ac; --red:#ff756f; --orange:#f5a466; color-scheme:dark; }
