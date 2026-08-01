@@ -13,12 +13,41 @@ export type SiteMessage = {
 const SETTING_KEY = "site_message";
 const DEFAULT_SITE_MESSAGE: SiteMessage = {
   title: "Помогите нам улучшать CounterPick",
-  body: "Войдите или зарегистрируйтесь, чтобы мы связывали драфты, feedback и результаты с вашим профилем. Сообщение можно отключить в админ-панели.",
+  body: "Войдите или зарегистрируйтесь, чтобы мы могли сохранять драфты, feedback и результаты с вашим профилем. Сообщение можно отключить в админ-панели.",
   buttonLabel: "Войти / зарегистрироваться",
   kind: "auth",
   enabled: true,
   updatedAt: null,
 };
+
+function isCorruptedText(value: unknown) {
+  if (typeof value !== "string") return false;
+  // Older Windows/database exports converted Cyrillic to long runs of `?`.
+  // Treat those legacy values as invalid so they cannot leak into the UI.
+  return /\?{2,}/.test(value) || value.includes("�");
+}
+
+function isCorruptedMessage(value: unknown) {
+  if (!value || typeof value !== "object") return false;
+  const input = value as Record<string, unknown>;
+  return [input.title, input.body, input.buttonLabel].some(isCorruptedText);
+}
+
+async function repairStoredMessage(updatedAt: number) {
+  const value = JSON.stringify({
+    title: DEFAULT_SITE_MESSAGE.title,
+    body: DEFAULT_SITE_MESSAGE.body,
+    buttonLabel: DEFAULT_SITE_MESSAGE.buttonLabel,
+    kind: DEFAULT_SITE_MESSAGE.kind,
+    enabled: DEFAULT_SITE_MESSAGE.enabled,
+  });
+  try {
+    await storeRun("UPDATE site_settings SET value = ?, updated_at = ? WHERE key = ?", [value, updatedAt, SETTING_KEY]);
+  } catch {
+    // Returning the repaired value is still preferable when a read-only D1 is used.
+  }
+  return { ...DEFAULT_SITE_MESSAGE, updatedAt: new Date(updatedAt).toISOString() };
+}
 
 function normalizeMessage(value: unknown, updatedAt: string | null): SiteMessage {
   if (!value || typeof value !== "object") return { ...DEFAULT_SITE_MESSAGE, updatedAt };
@@ -38,7 +67,12 @@ export async function getSiteMessage(): Promise<SiteMessage> {
     const row = await storeFirst<{ value?: unknown; updated_at?: unknown }>("SELECT value, updated_at FROM site_settings WHERE key = ? LIMIT 1", [SETTING_KEY]);
     if (!row) return { ...DEFAULT_SITE_MESSAGE };
     let parsed: unknown = null;
-    try { parsed = typeof row.value === "string" ? JSON.parse(row.value) : row.value; } catch { parsed = null; }
+    try {
+      parsed = typeof row.value === "string" ? JSON.parse(row.value) : row.value;
+    } catch {
+      parsed = null;
+    }
+    if (isCorruptedMessage(parsed)) return repairStoredMessage(Date.now());
     return normalizeMessage(parsed, asIso(row.updated_at));
   } catch {
     return { ...DEFAULT_SITE_MESSAGE };
