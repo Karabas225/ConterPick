@@ -1,5 +1,5 @@
 import { createReadStream } from "node:fs";
-import { access, readFile, stat } from "node:fs/promises";
+import { access, readFile, readdir, stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
 import { Readable } from "node:stream";
@@ -49,6 +49,8 @@ const contentTypes = {
   ".woff2": "font/woff2",
 };
 
+const clientBootstrapAlias = "/assets/counterpick-client.mjs";
+
 function serviceUnavailablePage() {
   return `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CounterPick — сервис временно недоступен</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:radial-gradient(circle at 78% 20%,#193d3d,transparent 35%),#080d13;color:#f3f8fa;font:16px Arial,sans-serif}.card{width:min(620px,calc(100% - 40px));padding:48px;border:1px solid #28494a;background:#101923;box-shadow:0 30px 100px #0008}.eyebrow{color:#8af1d4;font-size:11px;font-weight:700;letter-spacing:.16em}.code{margin:24px 0 4px;color:#ff756f;font-size:clamp(82px,18vw,150px);font-weight:900;letter-spacing:-.1em;line-height:.8}.code span{color:#f5a466}h1{margin:24px 0 14px;font-size:clamp(32px,7vw,56px);line-height:.95;letter-spacing:-.06em}em{color:#8af1d4;font-style:normal}p{max-width:480px;color:#93a6b2;line-height:1.6}a{display:inline-block;margin-top:22px;padding:13px 17px;background:#8af1d4;color:#07201c;text-decoration:none;font-weight:700}small{display:block;margin-top:38px;color:#93a6b2;font-size:10px;letter-spacing:.08em}</style></head><body><main class="card"><span class="eyebrow">SERVICE STATUS / 5XX</span><div class="code">50<span>×</span></div><h1>Сервис на короткой<br><em>перезагрузке.</em></h1><p>Мы не смогли обработать запрос. Попробуйте ещё раз через несколько секунд — данные драфта не потеряны.</p><a href="/">Вернуться к драфту</a><small>COUNTERPICK / DOTA 2 DRAFT INTELLIGENCE · by Karabas</small></main></body></html>`;
 }
@@ -68,7 +70,20 @@ function safeClientPath(urlPath) {
 
 async function serveStatic(req, res) {
   if (req.method !== "GET" && req.method !== "HEAD") return false;
-  const filename = safeClientPath(req.url ?? "/");
+  const urlPath = (req.url ?? "/").split("?")[0];
+  let filename = safeClientPath(req.url ?? "/");
+  let isBootstrapAlias = false;
+
+  // This stable alias is intentionally resolved at request time. It always
+  // points to the current hashed Vinext entry after a restart, while imports
+  // inside that entry stay relative to /assets and continue to work normally.
+  if (urlPath === clientBootstrapAlias) {
+    const assetsDir = path.join(clientDir, "assets");
+    const entryName = (await readdir(assetsDir)).find((name) => /^index-[A-Za-z0-9_-]+\.js$/.test(name));
+    filename = entryName ? path.join(assetsDir, entryName) : null;
+    isBootstrapAlias = true;
+  }
+
   if (!filename) return false;
   try {
     const file = await stat(filename);
@@ -76,11 +91,11 @@ async function serveStatic(req, res) {
     const ext = path.extname(filename).toLowerCase();
     // Files below /assets have versioned names. They can be held by browser and
     // proxy caches for a long time; a future logo or bundle gets a new path.
-    const isAsset = (req.url ?? "").split("?")[0].startsWith("/assets/");
+    const isAsset = urlPath.startsWith("/assets/") && !isBootstrapAlias;
     res.writeHead(200, {
       "Content-Type": contentTypes[ext] ?? "application/octet-stream",
       "Content-Length": String(file.size),
-      "Cache-Control": isAsset ? "public, max-age=31536000, immutable" : "public, max-age=3600",
+      "Cache-Control": isBootstrapAlias ? "no-store" : isAsset ? "public, max-age=31536000, immutable" : "public, max-age=3600",
       "X-Content-Type-Options": "nosniff",
     });
     if (req.method === "HEAD") res.end();
@@ -116,6 +131,26 @@ async function proxy(req, res, targetPort) {
   });
   const cookies = response.headers.getSetCookie?.() ?? [];
   if (cookies.length) responseHeaders["set-cookie"] = cookies;
+
+  // Vinext emits the initial client bootstrap as an inline dynamic import:
+  //   import("/assets/index-<hash>.js")
+  // Some VPN/browser filtering combinations reject that exact request with
+  // ERR_BLOCKED_BY_CLIENT even though the same file is available by URL. A
+  // A regular module script under a neutral, same-directory alias gives the
+  // browser an equivalent dependency graph, but starts it through the
+  // standard script loader. Keep this narrowly scoped to the generated
+  // bootstrap and leave all other HTML untouched.
+  const isHtml = (response.headers.get("content-type") ?? "").toLowerCase().includes("text/html");
+  if (isHtml && response.body) {
+    const html = await response.text();
+    const normalizedHtml = html
+      .replace(/<link\b(?=[^>]*\brel=["']modulepreload["'])(?=[^>]*\bhref=["']\/assets\/index-[^"']+\.js["'])[^>]*>/g, "")
+      .replace(/<script id="_R_">import\((['"])(\/assets\/index-[^'"]+\.js)\1\)<\/script>/, `<script type="module" src="${clientBootstrapAlias}"></script>`);
+    res.writeHead(response.status, responseHeaders);
+    res.end(normalizedHtml);
+    return;
+  }
+
   res.writeHead(response.status, responseHeaders);
   if (response.body) Readable.fromWeb(response.body).pipe(res);
   else res.end();

@@ -52,7 +52,6 @@ npm.cmd run dev
 npm ci
 cp config/counterpick.env.template .env
 # Отредактируйте .env: домен, админскую почту, опциональный build-feed.
-npm run build
 npm run start -- --hostname 127.0.0.1 --port 3000
 ```
 
