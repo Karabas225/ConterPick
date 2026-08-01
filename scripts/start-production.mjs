@@ -110,6 +110,24 @@ async function proxy(req, res, targetPort) {
   });
   const cookies = response.headers.getSetCookie?.() ?? [];
   if (cookies.length) responseHeaders["set-cookie"] = cookies;
+  const contentType = response.headers.get("content-type") ?? "";
+
+  // Vinext emits its client bootstrap as a dynamic import inside a classic
+  // inline script. That import is rejected by some reverse-proxy browser
+  // paths even though the same module is available over HTTP. A normal module
+  // script is equivalent here and is considerably more reliable.
+  if (contentType.includes("text/html")) {
+    const html = await response.text();
+    const patchedHtml = html.replace(
+      /<script id="_R_">import\("([^"]+)"\)<\/script>/,
+      '<script id="_R_" type="module" src="$1"></script>',
+    );
+    responseHeaders["cache-control"] = "no-store, must-revalidate";
+    res.writeHead(response.status, responseHeaders);
+    res.end(patchedHtml);
+    return;
+  }
+
   res.writeHead(response.status, responseHeaders);
   if (response.body) Readable.fromWeb(response.body).pipe(res);
   else res.end();
