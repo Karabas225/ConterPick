@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 
 export default function ErrorPage({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => { document.title = "CounterPick — сервис временно недоступен"; }, []);
@@ -12,7 +13,7 @@ export default function ErrorPage({ reset }: { error: Error & { digest?: string 
       <p>Мы не смогли обработать запрос. Данные драфта не потеряны — попробуйте ещё раз через несколько секунд.</p>
       <div className="service-error-actions">
         <button type="button" className="calculate-button" onClick={reset}>Повторить запрос <b>↻</b></button>
-        <a className="ghost-button" href="/">Вернуться к драфту</a>
+        <Link className="ghost-button" href="/">Вернуться к драфту</Link>
       </div>
       <small>COUNTERPICK / DOTA 2 DRAFT INTELLIGENCE · by Karabas</small>
     </section>

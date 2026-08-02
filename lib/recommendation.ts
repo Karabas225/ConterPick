@@ -193,7 +193,7 @@ function threatItems(enemyIds: number[], strategy: StrategyId, targetRole: RoleI
   for (const item of strategyItems) entries.push({ item, reason: `Поддерживает план «${STRATEGIES[strategy].label.toLowerCase()}»`, score: 70 });
   return [...new Map(entries.map((entry) => [entry.item, entry])).values()]
     .map((entry, index) => ({ item: entry.item, reason: enemyNames ? `${entry.reason} против ${enemyNames}` : entry.reason, lift: `${(1.45 - index * 0.08).toFixed(2)}×`, score: entry.score }))
-    .sort((left, right) => right.score - left.score).slice(0, 5).map(({ score: _score, ...entry }) => entry);
+    .sort((left, right) => right.score - left.score).slice(0, 5).map((entry) => ({ item: entry.item, reason: entry.reason, lift: entry.lift }));
 }
 
 export function buildGuide(heroId: number, targetRole: RoleId, enemyIds: number[], liveBuilds: Record<string, LiveBuild> = {}, context: RecommendationContext = {}): BuildGuide {

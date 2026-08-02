@@ -21,7 +21,10 @@ export default function DataFreshness() {
     const timer = window.setInterval(load, 5 * 60 * 1000);
     return () => { active = false; window.clearInterval(timer); };
   }, []);
-  useEffect(() => { setDismissed(window.localStorage.getItem(DISMISSED_KEY) === "1"); }, []);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDismissed(window.localStorage.getItem(DISMISSED_KEY) === "1"), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
   if (!update) return <aside className="global-data-status pending"><b>Проверяем данные Dota…</b></aside>;
   if (dismissed) return <button type="button" className="data-status-restore" onClick={() => { window.localStorage.removeItem(DISMISSED_KEY); setDismissed(false); }} aria-label="Показать статус данных">PATCH</button>;
   return <aside className={`global-data-status ${update.status === "error" ? "error" : ""}`} aria-label="Актуальность данных"><button type="button" className="data-status-close" onClick={() => { window.localStorage.setItem(DISMISSED_KEY, "1"); setDismissed(true); }} aria-label="Скрыть статус данных">×</button><div><b>PATCH {update.patch || "—"}</b><span>{update.status === "error" ? "нет связи с источником" : update.status === "stale" ? "используется последний снимок" : "источник подтверждён"}</span></div><small>Мета: {dateLabel(update.dataUpdatedAt)} · Сборки: {update.buildsUpdatedAt ? dateLabel(update.buildsUpdatedAt) : update.buildsStatus === "fresh" ? "сегодня" : "baseline"}</small><small>Проверка: {dateLabel(update.checkedAt)}</small></aside>;

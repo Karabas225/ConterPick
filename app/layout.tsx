@@ -15,9 +15,8 @@ export const metadata: Metadata = {
     images: [{ url: "/og.png", width: 1536, height: 1024, alt: "CounterPick draft intelligence" }],
   },
   twitter: { card: "summary_large_image", title: "CounterPick", description: "Пик, который ломает план.", images: ["/og.png"] },
-  icons: { icon: "/counterpick-logo.png", shortcut: "/counterpick-logo.png", apple: "/counterpick-logo.png" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="ru"><body><ThemeToggle /><DataFreshness /><SiteAnnouncement /><BackToTop />{children}</body></html>;
+  return <html lang="ru"><head><link rel="icon" href="/counterpick-logo.png" /><link rel="apple-touch-icon" href="/counterpick-logo.png" /></head><body><ThemeToggle /><DataFreshness /><SiteAnnouncement /><BackToTop />{children}</body></html>;
 }

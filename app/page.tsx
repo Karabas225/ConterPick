@@ -27,21 +27,22 @@ const ENCOUNTERS: Array<{ id: EncounterMode; label: string; hint: string }> = [
 ];
 
 function HeroAvatar({ hero, large = false }: { hero: Pick<Hero, "id" | "name" | "image">; large?: boolean }) {
-  const sources = useMemo(() => heroImageCandidates(hero), [hero]);
-  const [sourceIndex, setSourceIndex] = useState(0);
-  useEffect(() => { setSourceIndex(0); }, [hero.id, hero.image]);
+  const sources = heroImageCandidates(hero);
+  const sourceKey = `${hero.id}:${hero.image}`;
+  const [sourceState, setSourceState] = useState({ key: sourceKey, index: 0 });
+  const sourceIndex = sourceState.key === sourceKey ? sourceState.index : 0;
   const missing = sourceIndex >= sources.length;
   return <span className={`hero-avatar-wrap ${large ? "hero-avatar-large" : ""}`} aria-label={hero.name} title={hero.name}>
-    {!missing && <img className="hero-avatar" src={sources[sourceIndex]} alt="" onError={() => setSourceIndex((value) => value + 1)} />}
+    {!missing && <img className="hero-avatar" src={sources[sourceIndex]} alt="" onError={() => setSourceState({ key: sourceKey, index: sourceIndex + 1 })} />}
     {missing && <span className="hero-avatar-fallback" aria-hidden="true">{hero.name.slice(0, 2).toUpperCase()}</span>}
   </span>;
 }
 
 function ItemVisual({ item, timing }: { item: string; timing?: string }) {
-  const [missing, setMissing] = useState(false);
-  useEffect(() => { setMissing(false); }, [item]);
+  const [failedItem, setFailedItem] = useState<string | null>(null);
+  const missing = failedItem === item;
   return <span className="item-visual" title={item}>
-    {!missing ? <img src={itemImage(item)} alt="" onError={() => setMissing(true)} /> : <span className="item-fallback" aria-hidden="true">◇</span>}
+    {!missing ? <img src={itemImage(item)} alt="" onError={() => setFailedItem(item)} /> : <span className="item-fallback" aria-hidden="true">◇</span>}
     <span className="item-name">{item}</span>{timing && <b>{timing}</b>}
   </span>;
 }
@@ -59,7 +60,7 @@ function Picker({ team, blocked, onAdd }: { team: "ally" | "enemy"; blocked: Set
       <span className="key-hint">↵</span>
     </label>
     {query && <div className="picker-results" role="listbox">
-      {matches.length ? matches.map((hero) => <button type="button" key={hero.id} onClick={() => add(hero)} role="option"><HeroAvatar hero={hero} /><span>{hero.name}</span><small>{hero.roles.map((role) => `P${role}`).join(" · ")}</small></button>) : <p>Не нашли героя. Попробуйте официальное имя, русский вариант или сокращение.</p>}
+      {matches.length ? matches.map((hero) => <button type="button" key={hero.id} onClick={() => add(hero)} role="option" aria-selected="false"><HeroAvatar hero={hero} /><span>{hero.name}</span><small>{hero.roles.map((role) => `P${role}`).join(" · ")}</small></button>) : <p>Не нашли героя. Попробуйте официальное имя, русский вариант или сокращение.</p>}
     </div>}
   </div>;
 }
@@ -119,10 +120,7 @@ function AuthCard({ user, onUser, onClose }: { user: AppUser | null; onUser: (us
 }
 
 // Alters the hashed client chunk for an emergency release after an interrupted deploy.
-const CLIENT_RELEASE = "20260802.1";
-
 export default function Home() {
-  const releaseSignal = useMemo(() => CLIENT_RELEASE, []);
   const [targetRole, setTargetRole] = useState<RoleId>(2); const [allies, setAllies] = useState<DraftHero[]>(DEMO_ALLIES); const [enemies, setEnemies] = useState<DraftHero[]>(DEMO_ENEMIES); const [mode, setMode] = useState<RecommendationMode>("tactical"); const [strategy, setStrategy] = useState<StrategyId>("balanced"); const [encounter, setEncounter] = useState<EncounterMode>("auto");
   const initial = useMemo(() => recommend(DEMO_ALLIES, DEMO_ENEMIES, 2, {}, {}, { mode: "tactical", strategy: "balanced", encounter: "auto" }), []); const [recommendations, setRecommendations] = useState<Recommendation[]>(initial); const [expandedId, setExpandedId] = useState<number | null>(null); const [guides, setGuides] = useState<Record<number, BuildGuide>>({}); const [busy, setBusy] = useState(false); const [calcError, setCalcError] = useState("");
   const [eventId, setEventId] = useState<string | null>(null); const [feedback, setFeedback] = useState<Record<number, FeedbackState>>({}); const [user, setUser] = useState<AppUser | null>(null); const [authOpen, setAuthOpen] = useState(false); const [adminOpen, setAdminOpen] = useState(false); const [liveUpdate, setLiveUpdate] = useState<UpdateState | null>(null); const [catalogVersion, setCatalogVersion] = useState(0);

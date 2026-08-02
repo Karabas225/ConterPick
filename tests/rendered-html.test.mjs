@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 async function render(pathname = "/", init = {}) {
@@ -23,6 +24,18 @@ test("server-renders the CounterPick draft board", async () => {
   assert.match(html, /Противники/);
   assert.doesNotMatch(html, /Your site is taking shape/);
   assert.doesNotMatch(html, /codex-preview/);
+});
+
+test("rendered page references a real non-empty production stylesheet", async () => {
+  const response = await render();
+  const html = await response.text();
+  const stylesheet = html.match(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+\.css)"/);
+  assert.ok(stylesheet, "The rendered page must reference a stylesheet");
+
+  const cssUrl = new URL(`../dist/client${stylesheet[1]}`, import.meta.url);
+  const css = await readFile(cssUrl, "utf8");
+  assert.ok(css.length > 10_000, "The production stylesheet must not be empty or truncated");
+  assert.match(css, /--counterpick-release/);
 });
 
 test("catalog and recommendation endpoints validate requests", async () => {
