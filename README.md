@@ -66,7 +66,7 @@ Nginx и systemd-шаблоны находятся в `deploy/nginx/counterpick.
 | --- | --- |
 | `SELF_HOST` | `1` для Node/Nginx-режима. |
 | `SELF_HOST_DB_PATH` | Путь к SQLite-файлу. |
-| `COUNTERPICK_ASSET_BASE` | Необязательный HTTPS-префикс CDN для `/assets/`; оставьте пустым при локальном запуске. |
+| `COUNTERPICK_ASSET_BASE` | Необязательный HTTPS-префикс CDN для `/assets/`; при bind `0.0.0.0` включается стабильный публичный CDN, а `127.0.0.1` использует локальные файлы. |
 | `COUNTERPICK_ADMIN_EMAILS` | Email администратора через запятую. |
 | `D2PT_PERMISSION_CONFIRMED` | `1` только при действующем разрешении D2PT. |
 | `DOTA_BUILD_FEED_URL` | Необязательный HTTPS JSON feed ролевых сборок. |

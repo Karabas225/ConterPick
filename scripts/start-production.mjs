@@ -31,7 +31,8 @@ function option(name, fallback) {
 
 const port = Number(option("--port", process.env.PORT ?? "3000"));
 const host = option("--hostname", process.env.COUNTERPICK_HOST ?? "0.0.0.0");
-const configuredAssetBase = (process.env.COUNTERPICK_ASSET_BASE ?? "").trim();
+const publicAssetBase = "https://cdn.jsdelivr.net/gh/Karabas225/ConterPick@3a1c643/cdn/assets";
+const configuredAssetBase = (process.env.COUNTERPICK_ASSET_BASE ?? (host === "0.0.0.0" ? publicAssetBase : "")).trim();
 const assetBase = configuredAssetBase ? `${configuredAssetBase.replace(/\/+$/, "")}/` : "";
 
 const contentTypes = {
