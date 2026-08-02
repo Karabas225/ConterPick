@@ -62,7 +62,7 @@ const heroNames: Array<[number, string, RoleId[]]> = [
 ];
 
 const aliasMap: Record<string, string[]> = {
-  "Anti-Mage": ["антимаг", "ам"], "Drow Ranger": ["дроу", "тракса"], "Shadow Fiend": ["сф"],
+  "Anti-Mage": ["антимаг", "ам"], "Drow Ranger": ["дровка", "тракса", "дров ренджер"], "Shadow Fiend": ["сф", "шадоф файд"],
   "Phantom Lancer": ["пл"], "Queen of Pain": ["квопа"], "Crystal Maiden": ["цм"],
   "Nature's Prophet": ["фурион"], "Keeper of the Light": ["котл"], "Outworld Destroyer": ["од"],
   "Spirit Breaker": ["бара"], "Faceless Void": ["войd", "войоид"], "Ancient Apparition": ["аа"],
@@ -78,12 +78,12 @@ const aliasMap: Record<string, string[]> = {
   "Hoodwink": ["худвинк", "худвинка"], "Jakiro": ["джакиро", "жакиро"], "Juggernaut": ["джагер", "джагернаут", "джаг"],
   "Legion Commander": ["легионка", "лк", "легион"], "Lich": ["лич"], "Lifestealer": ["лайфстилер", "найкс", "наикс"],
   "Lina": ["лина"], "Lion": ["лион", "лев"], "Lone Druid": ["лон друид", "лд", "медведь"], "Luna": ["луна"],
-  "Magnus": ["магнус", "магн"], "Mars": ["марс"], "Medusa": ["медуза"], "Mirana": ["мирана", "мирана"],
+  "Magnus": ["магнус", "магн", "moggnus", "могнус"], "Mars": ["марс"], "Medusa": ["медуза"], "Mirana": ["мирана", "мирана"],
   "Monkey King": ["манки кинг", "мк", "обезьяна"], "Morphling": ["морф", "морфлинг"], "Muerta": ["муэрта", "муерта"],
   "Naga Siren": ["нага", "нага сирена"], "Necrophos": ["некр", "некрофос"], "Night Stalker": ["нс", "найт сталкер", "сталкер"],
   "Nyx Assassin": ["никс", "nyx", "никс ассасин"], "Ogre Magi": ["огр", "огр маг"], "Omniknight": ["омник", "омнинайт"],
   "Oracle": ["оракл"], "Pangolier": ["панго", "пангольер"], "Phantom Assassin": ["па", "фантомка"],
-  "Phoenix": ["феникс"], "Primal Beast": ["праймал", "пб", "праймал бист"], "Puck": ["пак", "пук"], "Pudge": ["пудж", "падж"],
+  "Phoenix": ["феникс"], "Primal Beast": ["праймал", "пб", "праймал бист"], "Puck": ["пак", "пук"], "Pudge": ["пудж", "падж", "пиджак"],
   "Queen of Pain": ["квоп", "квин оф пейн"], "Razor": ["рейзор", "разор"], "Rubick": ["рубик"],
   "Sand King": ["ск", "санд кинг"], "Shadow Demon": ["шд", "шадоу демон"], "Shadow Shaman": ["шаман", "рш", "шадоу шаман"],
   "Silencer": ["сайленсер", "сало"], "Skywrath Mage": ["скаймаг", "скай", "см"], "Slardar": ["слардар", "селедка"],
