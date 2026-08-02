@@ -31,6 +31,8 @@ function option(name, fallback) {
 
 const port = Number(option("--port", process.env.PORT ?? "3000"));
 const host = option("--hostname", process.env.COUNTERPICK_HOST ?? "0.0.0.0");
+const configuredAssetBase = (process.env.COUNTERPICK_ASSET_BASE ?? "").trim();
+const assetBase = configuredAssetBase ? `${configuredAssetBase.replace(/\/+$/, "")}/` : "";
 
 const contentTypes = {
   ".css": "text/css; charset=utf-8",
@@ -116,6 +118,16 @@ async function proxy(req, res, targetPort) {
   // React Server Components require the bootstrap to arrive before the stream
   // is buffered by a reverse proxy. Nginx honors this header by default.
   responseHeaders["x-accel-buffering"] = "no";
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (assetBase && (contentType.includes("text/html") || contentType.includes("text/x-component"))) {
+    const source = await response.text();
+    const rewritten = source.replaceAll("/assets/", assetBase);
+    responseHeaders["content-length"] = String(Buffer.byteLength(rewritten));
+    res.writeHead(response.status, responseHeaders);
+    res.end(rewritten);
+    return;
+  }
 
   res.writeHead(response.status, responseHeaders);
   if (response.body) Readable.fromWeb(response.body).pipe(res);
