@@ -1,4 +1,3 @@
-import { createReadStream } from "node:fs";
 import { access, readFile, stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
@@ -75,14 +74,18 @@ async function serveStatic(req, res) {
     if (!file.isFile()) return false;
     const ext = path.extname(filename).toLowerCase();
     const isAsset = (req.url ?? "").split("?")[0].startsWith("/assets/");
+    const contents = req.method === "HEAD" ? null : await readFile(filename);
+    // Buffer immutable assets before sending them. This prevents a slow VPN
+    // hop from observing a partially drained file stream as a complete 200.
+    res.shouldKeepAlive = false;
     res.writeHead(200, {
       "Content-Type": contentTypes[ext] ?? "application/octet-stream",
       "Content-Length": String(file.size),
       "Cache-Control": isAsset ? "public, max-age=31536000, immutable" : "public, max-age=3600",
       "X-Content-Type-Options": "nosniff",
+      "Connection": "close",
     });
-    if (req.method === "HEAD") res.end();
-    else createReadStream(filename).pipe(res);
+    res.end(contents);
     return true;
   } catch {
     return false;
